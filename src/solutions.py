@@ -36,6 +36,33 @@ class SourceSink:
         return phi
 
 
+class UniformFlow:
+    
+    def __init__(self, U_inf):
+
+        self.U_inf = U_inf
+
+    def velocity_field(self, grid):
+        ''' Compute the velocity field on a mesh grid.'''
+
+        u = self.U_inf * np.ones_like(grid.X)
+        v = np.zeros_like(grid.Y)
+
+        return u, v
+
+    def stream_function(self, grid):
+
+        psi = self.U_inf * grid.Y
+
+        return psi
+    
+    def phi(self, grid):
+
+        phi = self.U_inf * grid.X
+
+        return phi
+
+
 class SourceSinkPair:
 
     def __init__(self, source, sink):
