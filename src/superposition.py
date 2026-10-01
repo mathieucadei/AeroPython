@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from grid import Grid
-from solutions import SourceSink, UniformFlow, SourceSinkPair
+from elementary_solutions import SourceSink, UniformFlow
 
 
 class SourceSinkPair:
