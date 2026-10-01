@@ -2,67 +2,46 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from grid import Grid
+from source_sink import SourceSink, SourceSinkPair
 
 
-class SourceSink:
 
-    def __init__(self, x, y, strength):
+class Superposition:
 
-        self.x = x
-        self.y = y
-        self.strength = strength
+    def __init__(self, solutions):
+
+        self.solutions = solutions
 
     def velocity_field(self, grid):
         ''' Compute the velocity field on a mesh grid.'''
 
-        u = (self.strength / (2 * np.pi) *
-            (grid.X - self.x) / ((grid.X - self.x)**2 + (grid.Y - self.y)**2))
+        u = np.zeros_like(grid.X)
+        v = np.zeros_like(grid.Y)
+
+        for solution in self.solutions:
+            u_solution, v_solution = solution.velocity_field(grid)
+            u += u_solution
+            v += v_solution
+
+        return u, v
+
+    def stream_function(self, grid):
         
-        v = (self.strength / (2 * np.pi) *
-            (grid.Y - self.y) / ((grid.X - self.x)**2 + (grid.Y - self.y)**2))
+        psi = np.zeros_like(grid.X)
 
-        return u, v
-
-    def stream_function(self, grid):
-
-        psi = self.strength / (2 * np.pi) * np.arctan2((grid.Y - self.y), (grid.X - self.x))
-
-        return psi
-    
-    def phi(self, grid):
-
-        phi = self.strength / (4 * np.pi) * np.log((grid.X - self.x)**2 + (grid.Y - self.y)**2)
-
-        return phi
-
-
-class SourceSinkPair:
-
-    def __init__(self, source, sink):
-
-        self.source = source
-        self.sink = sink
-
-    def velocity_field(self, grid):
-        ''' Compute the velocity field on a mesh grid.'''
-
-        u_source, v_source = self.source.velocity_field(grid)
-        u_sink, v_sink = self.sink.velocity_field(grid)
-
-        u = u_source + u_sink
-        v = v_source + v_sink
-
-        return u, v
-
-    def stream_function(self, grid):
-
-        psi = self.source.stream_function(grid) + self.sink.stream_function(grid)
+        for solution in self.solutions:
+            psi_solution = solution.stream_function(grid)
+            psi += psi_solution
 
         return psi
 
     def phi(self, grid):
 
-        phi = self.source.phi(grid) + self.sink.phi(grid)
+        phi = np.zeros_like(grid.X)
+
+        for solution in self.solutions:
+            phi_solution = solution.phi(grid)
+            phi += phi_solution
 
         return phi
 
@@ -93,7 +72,7 @@ if __name__ == '__main__':
 
     u_sink, v_sink = sink.velocity_field(grid)
 
-    pair = SourceSinkPair(source=source, sink=sink)
+    pair = Superposition(solutions=[source, sink])
 
     phi_pair = pair.phi(grid)
 
