@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from grid import Grid
-from elementary_solutions import SourceSink, UniformFlow
+from elementary_solutions import SourceSink, Doublet, UniformFlow
 
 
 class SourceSinkPair:
@@ -156,6 +156,52 @@ class SourceSinkPairFreestream:
         phi = phi_source + phi_sink + phi_freestream
 
         return phi      
+
+    def pressure_coefficient(self, grid):
+
+        u, v = self.velocity_field(grid)
+
+        V = np.sqrt(u**2 + v**2)
+
+        cp = 1.0 - (V / self.freestream.U_inf)**2
+
+        return cp
+
+
+class DoubletFreestream:
+
+    def __init__(self, doublet, freestream):
+
+        self.doublet = doublet
+        self.freestream = freestream
+
+    def velocity_field(self, grid):
+        ''' Compute the velocity field on a mesh grid.'''
+
+        u_doublet, v_doublet = self.doublet.velocity_field(grid)
+        u_freestream, v_freestream = self.freestream.velocity_field(grid)
+
+        u = u_doublet + u_freestream
+        v = v_doublet + v_freestream
+
+        return u, v
+
+    def stream_function(self, grid):
+
+        psi_doublet = self.doublet.stream_function(grid)
+        psi_freestream = self.freestream.stream_function(grid)
+
+        psi = psi_doublet + psi_freestream
+
+        return psi
+
+    def stagnation_point(self):
+
+        x_stagn1, y_stagn1 = np.sqrt(self.doublet.strength / (2.0 * np.pi * self.freestream.U_inf)), 0.0
+        x_stagn2, y_stagn2 = -np.sqrt(self.doublet.strength / (2.0 * np.pi * self.freestream.U_inf)), 0.0
+
+        return x_stagn1, y_stagn1, x_stagn2, y_stagn2
+
 
     def pressure_coefficient(self, grid):
 
@@ -396,4 +442,71 @@ if __name__ == '__main__':
     ax2.set_ylim(y_start, y_end)
     ax2.set_title('Solution Pressure Coefficient')
 
+    plt.show()
+
+
+    nx, ny = 50, 50                                # number of points in each direction
+    x_start, x_end = -2.0, 2.0            # boundaries in the x-direction
+    y_start, y_end = -1.0, 1.0            # boundaries in the y-direction
+
+    grid = Grid(x_start=x_start, x_end=x_end, y_start=y_start, y_end=y_end, nx=nx, ny=ny)
+
+    kappa = 1.0
+    x_doublet, y_doublet = 0.0, 0.0
+
+    doublet = Doublet(xd=x_doublet, yd=y_doublet, strength=kappa)
+    u_doublet, v_doublet = doublet.velocity_field(grid)
+    psi_doublet = doublet.stream_function(grid)
+
+    width = 10
+    height = (y_end - y_start) / (x_end - x_start) * width
+
+    fig, ax = plt.subplots(figsize=(width, height))
+
+    ax.streamplot(grid.X, grid.Y, u_doublet, v_doublet,
+                  density=2, linewidth=1, arrowsize=1, arrowstyle='->')
+    ax.scatter(x_doublet, y_doublet, color='r', s=80, marker='o')
+    ax.set_xlabel('x', fontsize=16)
+    ax.set_ylabel('y', fontsize=16) 
+    ax.set_xlim(x_start, x_end)
+    ax.set_ylim(y_start, y_end)
+    plt.show()
+
+    doublet_freestream = DoubletFreestream(doublet=doublet, freestream=uniform_flow)
+
+    u_doublet_freestream, v_doublet_freestream = doublet_freestream.velocity_field(grid)  
+    psi_doublet_freestream = doublet_freestream.stream_function(grid)
+
+    x_stag1, y_stag1, x_stag2, y_stag2 = doublet_freestream.stagnation_point()
+
+    cp_doublet_freestream = doublet_freestream.pressure_coefficient(grid)
+
+    width = 10
+    height = (y_end - y_start) / (x_end - x_start) * width
+
+    fig, ax = plt.subplots(2, 1, figsize=(width, height), constrained_layout=True)
+
+    ax[0].streamplot(grid.X, grid.Y, u_doublet_freestream, v_doublet_freestream,
+                     density=2, linewidth=1, arrowsize=1, arrowstyle='->')
+    ax[0].contour(grid.X, grid.Y, psi_doublet_freestream,
+                  levels=[0.0], colors='r', linewidths=2.0, linestyles='solid') 
+    ax[0].scatter(x_doublet, y_doublet, color='r', s=80, marker='o')
+    ax[0].scatter([x_stag1, x_stag2], [y_stag1, y_stag2], color='g', s=80, marker='o')
+    ax[0].set_xlabel('x', fontsize=16)
+    ax[0].set_ylabel('y', fontsize=16)
+    ax[0].set_xlim(x_start, x_end)
+    ax[0].set_ylim(y_start, y_end)
+
+    contf = ax[1].contourf(grid.X, grid.Y, cp_doublet_freestream, levels=np.linspace(-2.0, 1.0, 100), cmap='viridis', extend='both')
+    cbar = fig.colorbar(contf)
+    cbar.set_label('$C_p$', fontsize=16)
+    cbar.set_ticks([-2.0, -1.0, 0.0, 1.0])
+    ax[1].scatter(x_doublet, y_doublet, color='r', s=80, marker='o')
+    ax[1].contour(grid.X, grid.Y, psi_doublet_freestream,
+                  levels=[0.0], colors='r', linewidths=2.0, linestyles='solid')
+    ax[1].scatter([x_stag1, x_stag2], [y_stag1, y_stag2], color='g', s=80, marker='o')
+    ax[1].set_xlabel('x', fontsize=16)
+    ax[1].set_ylabel('y', fontsize=16)
+    ax[1].set_xlim(x_start, x_end)
+    ax[1].set_ylim(y_start, y_end)
     plt.show()

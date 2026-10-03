@@ -36,6 +36,42 @@ class SourceSink:
         return phi
 
 
+class Doublet:
+
+    def __init__(self, xd, yd, strength):
+
+        self.xd = xd
+        self.yd = yd
+        self.strength = strength
+
+    def velocity_field(self, grid):
+        ''' Compute the velocity field on a mesh grid.'''
+
+        u = (-self.strength / (2 * np.pi) *
+            ((grid.X - self.xd)**2 - (grid.Y - self.yd)**2) /
+            ((grid.X - self.xd)**2 + (grid.Y - self.yd)**2)**2)
+        
+        v = (-self.strength / (2 * np.pi) *
+            (2 * (grid.X - self.xd) * (grid.Y - self.yd)) /
+            ((grid.X - self.xd)**2 + (grid.Y - self.yd)**2)**2)
+
+        return u, v
+
+    def stream_function(self, grid):
+
+        psi = (-self.strength / (2 * np.pi) *
+            (grid.Y - self.yd) / ((grid.X - self.xd)**2 + (grid.Y - self.yd)**2))
+
+        return psi
+    
+    def phi(self, grid):
+
+        phi = (-self.strength / (2 * np.pi) *
+            (grid.X - self.xd) / ((grid.X - self.xd)**2 + (grid.Y - self.yd)**2))
+
+        return phi
+
+
 class UniformFlow:
     
     def __init__(self, U_inf):
