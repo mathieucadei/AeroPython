@@ -1,68 +1,72 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from grid import Grid
-from elementary_solutions import SourceSink, Doublet, UniformFlow
+from src.grid import Grid
+from src.elementary_solutions import SourceSink, Doublet, UniformFlow
 
 
-class SourceSinkPair:
+class Superposition:
 
-    def __init__(self, source, sink):
+    def __init__(self, elementary_solutions):
 
-        self.source = source
-        self.sink = sink
+        self.elementary_solutions = elementary_solutions
 
     def velocity_field(self, grid):
-        ''' Compute the velocity field on a mesh grid.'''
 
-        u_source, v_source = self.source.velocity_field(grid)
-        u_sink, v_sink = self.sink.velocity_field(grid)
+        u_total = np.zeros_like(grid.X)
+        v_total = np.zeros_like(grid.Y)
 
-        u = u_source + u_sink
-        v = v_source + v_sink
+        for solution in self.elementary_solutions:
+            u, v = solution.velocity_field(grid)
+            u_total += u
+            v_total += v
 
-        return u, v
+        return u_total, v_total
 
     def stream_function(self, grid):
 
-        psi = self.source.stream_function(grid) + self.sink.stream_function(grid)
+        psi_total = np.zeros_like(grid.X)
 
-        return psi
+        for solution in self.elementary_solutions:
+            psi = solution.stream_function(grid)
+            psi_total += psi
+
+        return psi_total
 
     def phi(self, grid):
 
-        phi = self.source.phi(grid) + self.sink.phi(grid)
+        phi_total = np.zeros_like(grid.X)
 
-        return phi
+        for solution in self.elementary_solutions:
+            phi = solution.phi(grid)
+            phi_total += phi
+
+        return phi_total
+
+    def pressure_coefficient(self, grid, u_inf):
+
+        u_total, v_total = self.velocity_field(grid)
+
+        V = np.sqrt(u_total**2 + v_total**2)
+
+        cp = 1.0 - (V / u_inf)**2
+
+        return cp
 
 
-class SourceSinkFreestream:
+class RankineHalfBody(Superposition):
 
     def __init__(self, source, freestream):
+
+        super().__init__(elementary_solutions=[source, freestream])
 
         self.source = source
         self.freestream = freestream
 
-    def velocity_field(self, grid):
-        ''' Compute the velocity field on a mesh grid.'''
+    def pressure_coefficient(self, grid):
 
-        u_source, v_source = self.source.velocity_field(grid)
-        u_freestream, v_freestream = self.freestream.velocity_field(grid)
-
-        u = u_source + u_freestream
-        v = v_source + v_freestream
-
-        return u, v
-
-    def stream_function(self, grid):
-
-        psi_source = self.source.stream_function(grid)
-        psi_freestream = self.freestream.stream_function(grid)
-
-        psi = psi_source + psi_freestream
-
-        return psi
-
+        return super().pressure_coefficient(grid, self.freestream.U_inf)
+    
     def stagnation_point(self):
 
         x_stag = self.source.x - self.source.strength / (2.0 * np.pi * self.freestream.U_inf)
@@ -75,55 +79,21 @@ class SourceSinkFreestream:
         max_width = self.source.strength / self.freestream.U_inf
 
         return max_width
+    
 
-    def phi(self, grid):
-
-        phi_source = self.source.phi(grid)
-        phi_freestream = self.freestream.phi(grid)
-
-        phi = phi_source + phi_freestream
-
-        return phi      
-
-    def pressure_coefficient(self, grid):
-
-        u, v = self.velocity_field(grid)
-
-        V = np.sqrt(u**2 + v**2)
-
-        cp = 1.0 - (V / self.freestream.U_inf)**2
-
-        return cp
-
-class SourceSinkPairFreestream:
+class RankineOval(Superposition):
 
     def __init__(self, source, sink, freestream):
+
+        super().__init__(elementary_solutions=[source, sink, freestream])
 
         self.source = source
         self.sink = sink
         self.freestream = freestream
 
-    def velocity_field(self, grid):
-        ''' Compute the velocity field on a mesh grid.'''
+    def pressure_coefficient(self, grid):
 
-        u_source, v_source = self.source.velocity_field(grid)
-        u_sink, v_sink = self.sink.velocity_field(grid)
-        u_freestream, v_freestream = self.freestream.velocity_field(grid)
-
-        u = u_source + u_sink + u_freestream
-        v = v_source + v_sink + v_freestream
-
-        return u, v
-
-    def stream_function(self, grid):
-
-        psi_source = self.source.stream_function(grid)
-        psi_sink = self.sink.stream_function(grid)
-        psi_freestream = self.freestream.stream_function(grid)
-
-        psi = psi_source + psi_sink + psi_freestream
-
-        return psi
+        return super().pressure_coefficient(grid, self.freestream.U_inf)
 
     def stagnation_point(self):
 
@@ -147,53 +117,19 @@ class SourceSinkPairFreestream:
 
         return max_width
 
-    def phi(self, grid):
 
-        phi_source = self.source.phi(grid)
-        phi_sink = self.sink.phi(grid)
-        phi_freestream = self.freestream.phi(grid)
-
-        phi = phi_source + phi_sink + phi_freestream
-
-        return phi      
-
-    def pressure_coefficient(self, grid):
-
-        u, v = self.velocity_field(grid)
-
-        V = np.sqrt(u**2 + v**2)
-
-        cp = 1.0 - (V / self.freestream.U_inf)**2
-
-        return cp
-
-
-class DoubletFreestream:
+class DoubletFreestream(Superposition):
 
     def __init__(self, doublet, freestream):
+
+        super().__init__(elementary_solutions=[doublet, freestream])
 
         self.doublet = doublet
         self.freestream = freestream
 
-    def velocity_field(self, grid):
-        ''' Compute the velocity field on a mesh grid.'''
+    def pressure_coefficient(self, grid):
 
-        u_doublet, v_doublet = self.doublet.velocity_field(grid)
-        u_freestream, v_freestream = self.freestream.velocity_field(grid)
-
-        u = u_doublet + u_freestream
-        v = v_doublet + v_freestream
-
-        return u, v
-
-    def stream_function(self, grid):
-
-        psi_doublet = self.doublet.stream_function(grid)
-        psi_freestream = self.freestream.stream_function(grid)
-
-        psi = psi_doublet + psi_freestream
-
-        return psi
+        return super().pressure_coefficient(grid, self.freestream.U_inf)
 
     def stagnation_point(self):
 
@@ -202,17 +138,17 @@ class DoubletFreestream:
 
         return x_stagn1, y_stagn1, x_stagn2, y_stagn2
 
+    def radius(self):
 
-    def pressure_coefficient(self, grid):
+        return np.sqrt(self.doublet.strength / (2.0 * np.pi * self.freestream.U_inf))
 
-        u, v = self.velocity_field(grid)
+    def surface_speed(self, theta):
 
-        V = np.sqrt(u**2 + v**2)
+        return 2.0 * self.freestream.U_inf * np.abs(np.sin(theta))
 
-        cp = 1.0 - (V / self.freestream.U_inf)**2
+    def pressure_distribution(self, theta):
 
-        return cp
-
+        return 1.0 - 4.0 * np.sin(theta)**2
 
 if __name__ == '__main__':
 
@@ -240,7 +176,7 @@ if __name__ == '__main__':
 
     u_sink, v_sink = sink.velocity_field(grid)
 
-    pair = SourceSinkPair(source=source, sink=sink)
+    pair = Superposition(elementary_solutions=[source, sink])
 
     phi_pair = pair.phi(grid)
 
@@ -333,7 +269,7 @@ if __name__ == '__main__':
 
     u_sink, v_sink = sink.velocity_field(grid)
 
-    ranking_half_body = SourceSinkFreestream(source=source, freestream=uniform_flow)
+    ranking_half_body = RankineHalfBody(source=source, freestream=uniform_flow)
 
     psi_ranging_half_body = ranking_half_body.stream_function(grid)
 
@@ -343,7 +279,7 @@ if __name__ == '__main__':
 
     ranking_half_body_max_width = ranking_half_body.half_body_max_width()
 
-    ranking_oval = SourceSinkPairFreestream(source=source, sink=sink, freestream=uniform_flow)
+    ranking_oval = RankineOval(source=source, sink=sink, freestream=uniform_flow)
 
     psi_ranking_oval = ranking_oval.stream_function(grid)
 
@@ -481,10 +417,22 @@ if __name__ == '__main__':
 
     cp_doublet_freestream = doublet_freestream.pressure_coefficient(grid)
 
-    width = 10
-    height = (y_end - y_start) / (x_end - x_start) * width
+    doublet_freestreem_radius = doublet_freestream.radius()
 
-    fig, ax = plt.subplots(2, 1, figsize=(width, height), constrained_layout=True)
+    theta = np.linspace(0, 2.0 * np.pi, 200)
+
+    doublet_freestreem_surface_speed = doublet_freestream.surface_speed(theta)
+
+    doublet_freestreem_pressure_distribution = doublet_freestream.pressure_distribution(theta)
+
+    # Surface coordinates and speed from your object
+    x_surface = x_doublet + doublet_freestreem_radius * np.cos(theta)
+    y_surface = y_doublet + doublet_freestreem_radius * np.sin(theta)
+
+    width = 10
+    height = 10
+
+    fig, ax = plt.subplots(2, 1, figsize=(width, height), layout='compressed')
 
     ax[0].streamplot(grid.X, grid.Y, u_doublet_freestream, v_doublet_freestream,
                      density=2, linewidth=1, arrowsize=1, arrowstyle='->')
@@ -492,12 +440,29 @@ if __name__ == '__main__':
                   levels=[0.0], colors='r', linewidths=2.0, linestyles='solid') 
     ax[0].scatter(x_doublet, y_doublet, color='r', s=80, marker='o')
     ax[0].scatter([x_stag1, x_stag2], [y_stag1, y_stag2], color='g', s=80, marker='o')
+
+    surface = ax[0].scatter(
+        x_surface, y_surface,
+        c=doublet_freestreem_surface_speed,
+        cmap='plasma',
+        vmin=0,
+        vmax=2.0 * doublet_freestream.freestream.U_inf,
+        s=20,
+        zorder=5,
+    )
+
+    fig.colorbar(surface, ax=ax[0], label="Surface speed")
+
+    # # Keep the cylinder circular in both plots
+    # for axis in ax:
+    #     axis.set_aspect('equal', adjustable='box')
+
     ax[0].set_xlabel('x', fontsize=16)
     ax[0].set_ylabel('y', fontsize=16)
     ax[0].set_xlim(x_start, x_end)
     ax[0].set_ylim(y_start, y_end)
 
-    contf = ax[1].contourf(grid.X, grid.Y, cp_doublet_freestream, levels=np.linspace(-2.0, 1.0, 100), cmap='viridis', extend='both')
+    contf = ax[1].contourf(grid.X, grid.Y, cp_doublet_freestream, levels=np.linspace(-3.0, 1.0, 100), cmap='viridis', extend='both')
     cbar = fig.colorbar(contf)
     cbar.set_label('$C_p$', fontsize=16)
     cbar.set_ticks([-2.0, -1.0, 0.0, 1.0])
@@ -505,8 +470,23 @@ if __name__ == '__main__':
     ax[1].contour(grid.X, grid.Y, psi_doublet_freestream,
                   levels=[0.0], colors='r', linewidths=2.0, linestyles='solid')
     ax[1].scatter([x_stag1, x_stag2], [y_stag1, y_stag2], color='g', s=80, marker='o')
+
+    surface = ax[1].scatter(
+        x_surface, y_surface,
+        c=doublet_freestreem_pressure_distribution,
+        cmap='viridis',
+        vmin=-3.0, 
+        vmax=1.0,
+        s=20,
+        zorder=5,
+    )
+
     ax[1].set_xlabel('x', fontsize=16)
     ax[1].set_ylabel('y', fontsize=16)
     ax[1].set_xlim(x_start, x_end)
     ax[1].set_ylim(y_start, y_end)
+
+    for axis in ax:
+        axis.set_aspect('equal', adjustable='box')
+
     plt.show()

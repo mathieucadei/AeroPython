@@ -9,6 +9,7 @@ class Grid:
         self.y = np.linspace(y_start, y_end, ny) 
         self.X, self.Y = np.meshgrid(self.x, self.y)
 
+
 if __name__ == '__main__':
 
     nx, ny = 50, 50                                # number of points in each direction

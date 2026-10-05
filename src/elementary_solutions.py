@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-from grid import Grid
-
 
 class SourceSink:
 
