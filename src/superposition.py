@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from src.grid import Grid
-from src.elementary_solutions import SourceSink, Doublet, UniformFlow
+from src.elementary_solutions import SourceSink, Doublet, Vortex, UniformFlow
 
 
 class Superposition:
@@ -52,6 +52,16 @@ class Superposition:
         cp = 1.0 - (V / u_inf)**2
 
         return cp
+
+    def max_pressure_coefficient(self, cp):
+
+        cp_max = np.max(cp)
+
+        cp_max_indice = np.argmax(cp)
+
+        cp_max_row, cp_max_column = np.unravel_index(cp_max_indice, cp.shape)
+
+        return cp_max, cp_max_indice, cp_max_row, cp_max_column
 
 
 class RankineHalfBody(Superposition):
@@ -489,4 +499,50 @@ if __name__ == '__main__':
     for axis in ax:
         axis.set_aspect('equal', adjustable='box')
 
+    plt.show()
+
+
+    gamma = 5.0
+    x_vortex, y_vortex = 0.0, 0.0
+
+    vortex = Vortex(strength=gamma, x=x_vortex, y=y_vortex)
+
+    u_vortex, v_vortex = vortex.velocity_field(grid)
+    psi_vortex = vortex.stream_function(grid)
+
+    width = 10
+    height = (y_end - y_start) / (x_end - x_start) * width
+    fig, ax = plt.subplots(figsize=(width, height))
+    ax.streamplot(grid.X, grid.Y, u_vortex, v_vortex,
+                    density=2, linewidth=1, arrowsize=1, arrowstyle='->')
+    ax.scatter(x_vortex, y_vortex, color='r', s=80, marker='o')
+    ax.set_xlim(x_start, x_end)
+    ax.set_ylim(y_start, y_end)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_title('Vortex Streamlines')
+    plt.show()
+
+    sigma_sink = -1.0
+    x_sink, y_sink = 0.0, 0.0
+
+    sink = SourceSink(strength=sigma_sink, x=x_sink, y=y_sink)
+
+    vortex_sink_pair = Superposition(elementary_solutions=[vortex, sink])
+
+    u_vortex_sink_pair, v_vortex_sink_pair = vortex_sink_pair.velocity_field(grid)
+
+    psi_vortex_sink_pair = vortex_sink_pair.stream_function(grid)
+
+    width = 10
+    height = (y_end - y_start) / (x_end - x_start) * width
+    fig, ax = plt.subplots(figsize=(width, height))
+    ax.streamplot(grid.X, grid.Y, u_vortex_sink_pair, v_vortex_sink_pair,
+                    density=2, linewidth=1, arrowsize=1, arrowstyle='->')
+    ax.scatter(x_vortex, y_vortex, color='r', s=80, marker='o')
+    ax.set_xlim(x_start, x_end)
+    ax.set_ylim(y_start, y_end)
+    ax.set_xlabel('x')
+    ax.set_ylabel('y')
+    ax.set_title('Vortex-Sink Streamlines')
     plt.show()

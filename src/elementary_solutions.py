@@ -70,6 +70,40 @@ class Doublet:
         return phi
 
 
+class Vortex:
+    
+    def __init__(self, x, y, strength):
+
+        self.x = x
+        self.y = y
+        self.strength = strength
+
+    def velocity_field(self, grid):
+        ''' Compute the velocity field on a mesh grid.'''
+
+        u = (-self.strength / (2 * np.pi) *
+            (grid.Y - self.y) / ((grid.X - self.x)**2 + (grid.Y - self.y)**2))
+        
+        v = (self.strength / (2 * np.pi) *
+            (grid.X - self.x) / ((grid.X - self.x)**2 + (grid.Y - self.y)**2))
+
+        return u, v
+
+    def stream_function(self, grid):
+
+        psi = (-self.strength / (4 * np.pi) *
+            np.log((grid.X - self.x)**2 + (grid.Y - self.y)**2))
+
+        return psi
+    
+    def phi(self, grid):
+
+        phi = (self.strength / (2 * np.pi) *
+            np.arctan2((grid.Y - self.y), (grid.X - self.x)))
+
+        return phi
+
+
 class UniformFlow:
     
     def __init__(self, U_inf):
