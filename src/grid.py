@@ -9,6 +9,28 @@ class Grid:
         self.y = np.linspace(y_start, y_end, ny) 
         self.X, self.Y = np.meshgrid(self.x, self.y)
 
+class PolarGrid:
+
+    def __init__(
+            self, 
+            radius_start, 
+            radius_end, 
+            theta_start, 
+            theta_end, 
+            nradius, 
+            ntheta,
+            xc,
+            yc
+        ):
+
+        self.r, self.theta = np.linspace(radius_start, radius_end, nradius), np.linspace(theta_start, theta_end, ntheta)
+
+        r_grid, theta_grid = np.meshgrid(self.r, self.theta)
+
+        z = xc + 1j * yc + r_grid * np.exp(1j * theta_grid)
+
+        self.X, self.Y = z.real, z.imag
+
 
 if __name__ == '__main__':
 
