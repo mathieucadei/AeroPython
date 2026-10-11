@@ -72,38 +72,55 @@ class Doublet:
 
 class Vortex:
     
-    def __init__(self, x, y, strength):
+    def __init__(self, x, y, gamma):
 
         self.x = x
         self.y = y
-        self.strength = strength
+        self.gamma = gamma
 
     def velocity_field(self, grid):
         ''' Compute the velocity field on a mesh grid.'''
 
-        u = (-self.strength / (2 * np.pi) *
+        u = (self.gamma / (2 * np.pi) *
             (grid.Y - self.y) / ((grid.X - self.x)**2 + (grid.Y - self.y)**2))
         
-        v = (self.strength / (2 * np.pi) *
+        v = (-self.gamma / (2 * np.pi) *
             (grid.X - self.x) / ((grid.X - self.x)**2 + (grid.Y - self.y)**2))
 
         return u, v
 
     def stream_function(self, grid):
 
-        psi = (-self.strength / (4 * np.pi) *
+        psi = (self.gamma / (4 * np.pi) *
             np.log((grid.X - self.x)**2 + (grid.Y - self.y)**2))
 
         return psi
     
     def phi(self, grid):
 
-        phi = (self.strength / (2 * np.pi) *
+        phi = (self.gamma / (2 * np.pi) *
             np.arctan2((grid.Y - self.y), (grid.X - self.x)))
 
         return phi
 
+class InfiniteRowOfVortices:
 
+    def __init__(self, gamma, spacing):
+
+        self.gamma = gamma
+        self.spacing = spacing
+
+    def velocity_field(self, grid):
+        ''' Compute the velocity field on a mesh grid.'''
+
+        u = self.gamma / (2 * self.spacing) * np.sinh(2 * np.pi * grid.Y / self.spacing) / \
+            (np.cosh(2 * np.pi * grid.Y / self.spacing) - np.cos(2 * np.pi * grid.X / self.spacing))
+
+        v = - self.gamma / (2 * self.spacing) * np.sin(2 * np.pi * grid.X / self.spacing) / \
+            (np.cosh(2 * np.pi * grid.Y / self.spacing) - np.cos(2 * np.pi * grid.X / self.spacing))
+
+        return u, v
+    
 class UniformFlow:
     
     def __init__(self, U_inf):

@@ -156,9 +156,46 @@ class DoubletFreestream(Superposition):
 
         return 2.0 * self.freestream.U_inf * np.abs(np.sin(theta))
 
-    def pressure_distribution(self, theta):
+    def surface_pressure_coefficient(self, theta):
 
         return 1.0 - 4.0 * np.sin(theta)**2
+
+
+class DoubletVortexFreestream(Superposition):
+
+    def __init__(self, doublet, vortex, freestream):
+
+        super().__init__(elementary_solutions=[doublet, vortex, freestream])
+
+        self.doublet = doublet
+        self.vortex = vortex
+        self.freestream = freestream
+
+    def pressure_coefficient(self, grid):
+
+        return super().pressure_coefficient(grid, self.freestream.U_inf)
+
+    def radius(self):
+
+        return np.sqrt(self.doublet.strength / (2.0 * np.pi * self.freestream.U_inf))
+
+    def stagnation_point(self):
+
+        x_stagn1, y_stagn1 = (+np.sqrt(self.radius()**2 - (self.vortex.gamma / (4 * np.pi * self.freestream.U_inf))**2),
+                            -self.vortex.gamma / (4 * np.pi * self.freestream.U_inf))
+        x_stagn2, y_stagn2 = (-np.sqrt(self.radius()**2 - (self.vortex.gamma / (4 * np.pi * self.freestream.U_inf))**2),
+                            -self.vortex.gamma / (4 * np.pi * self.freestream.U_inf))
+
+        return x_stagn1, y_stagn1, x_stagn2, y_stagn2
+
+    def u_theta(self, theta):
+
+        return -2.0 * self.freestream.U_inf * np.sin(theta) - self.vortex.gamma / (2.0 * np.pi * self.radius())
+
+    def surface_pressure_coefficient(self, theta):
+
+        return 1.0 - (self.u_theta(theta) / self.freestream.U_inf)**2
+
 
 if __name__ == '__main__':
 
@@ -433,7 +470,7 @@ if __name__ == '__main__':
 
     doublet_freestreem_surface_speed = doublet_freestream.surface_speed(theta)
 
-    doublet_freestreem_pressure_distribution = doublet_freestream.pressure_distribution(theta)
+    doublet_freestreem_pressure_distribution = doublet_freestream.surface_pressure_coefficient(theta)
 
     # Surface coordinates and speed from your object
     x_surface = x_doublet + doublet_freestreem_radius * np.cos(theta)
@@ -505,7 +542,7 @@ if __name__ == '__main__':
     gamma = 5.0
     x_vortex, y_vortex = 0.0, 0.0
 
-    vortex = Vortex(strength=gamma, x=x_vortex, y=y_vortex)
+    vortex = Vortex(gamma=gamma, x=x_vortex, y=y_vortex)
 
     u_vortex, v_vortex = vortex.velocity_field(grid)
     psi_vortex = vortex.stream_function(grid)
