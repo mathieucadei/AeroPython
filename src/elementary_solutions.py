@@ -123,9 +123,10 @@ class InfiniteRowOfVortices:
     
 class UniformFlow:
     
-    def __init__(self, U_inf):
+    def __init__(self, U_inf, alpha):
 
         self.U_inf = U_inf
+        self.alpha = np.radians(alpha)
 
     def velocity_field(self, grid):
         ''' Compute the velocity field on a mesh grid.'''
